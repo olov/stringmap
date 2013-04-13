@@ -1,20 +1,26 @@
-= stringmap.js
-Fast and robust stringmap implementation that can hold any string keys,
+# stringmap.js
+A fast and robust stringmap implementation that can hold any string keys,
 including `__proto__`, with minimal overhead compared to a plain object.
-Works in node and the browser.
+Works in node and browsers.
 
-
-== Installation
-=== Node
+## Installation
+### Node
 Install using npm
+
     npm install stringmap
-    var StringMap = require("./stringmap");
 
-=== Browser
+```javascript
+var StringMap = require("stringmap");
+```
+
+### Browser
 Clone the repo, include it in a script tag. You may want an ES5 polyfill.
+
     git clone https://github.com/olov/stringmap.git
-    <script src="stringmap/stringmap.js"></script>
 
+```html
+<script src="stringmap/stringmap.js"></script>
+```
 
-== Examples
+## Examples
 Coming.
