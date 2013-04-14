@@ -74,16 +74,30 @@ var StringMap = (function() {
 
     // primitive methods that deals with data representation
     stringmap.prototype.has = function(key) {
+        // The type-check of key in has, get, set and delete is important because otherwise an object
+        // {toString: function() { return "__proto__"; }} can avoid the key === "__proto__" test.
+        // The alternative to type-checking would be to force string conversion, i.e. key = String(key);
+        if (typeof key !== "string") {
+            throw new Error("StringMap expected string key");
+        }
         return (key === "__proto__" ?
             this.hasProto :
             hasOwnProperty.call(this.obj, key));
     };
+
     stringmap.prototype.get = function(key) {
+        if (typeof key !== "string") {
+            throw new Error("StringMap expected string key");
+        }
         return (key === "__proto__" ?
             this.hasProto && this.proto :
             (hasOwnProperty.call(this.obj, key) ? this.obj[key] : undefined));
     };
+
     stringmap.prototype.set = function(key, value) {
+        if (typeof key !== "string") {
+            throw new Error("StringMap expected string key");
+        }
         if (key === "__proto__") {
             this.hasProto = true;
             this.proto = value;
@@ -91,7 +105,11 @@ var StringMap = (function() {
             this.obj[key] = value;
         }
     };
+
     stringmap.prototype['delete'] = function(key) {
+        if (typeof key !== "string") {
+            throw new Error("StringMap expected string key");
+        }
         var didExist = this.has(key);
         if (key === "__proto__") {
             this.hasProto = this.proto = undefined;
@@ -100,6 +118,7 @@ var StringMap = (function() {
         }
         return didExist;
     };
+
     stringmap.prototype.isEmpty = function() {
         for (var key in this.obj) {
             if (hasOwnProperty.call(this.obj, key)) {
@@ -108,6 +127,7 @@ var StringMap = (function() {
         }
         return !this.hasProto;
     };
+
     stringmap.prototype.size = function() {
         var len = 0;
         for (var key in this.obj) {
@@ -117,6 +137,7 @@ var StringMap = (function() {
         }
         return (this.hasProto ? len + 1 : len);
     };
+
     stringmap.prototype.keys = function() {
         var keys = [];
         for (var key in this.obj) {
@@ -129,6 +150,7 @@ var StringMap = (function() {
         }
         return keys;
     };
+
     stringmap.prototype.values = function() {
         var values = [];
         for (var key in this.obj) {
@@ -141,6 +163,7 @@ var StringMap = (function() {
         }
         return values;
     };
+
     stringmap.prototype.items = function() {
         var items = [];
         for (var key in this.obj) {
@@ -154,6 +177,7 @@ var StringMap = (function() {
         return items;
     };
 
+
     // methods that rely on the above primitives
     stringmap.prototype.setMany = function(object) {
         if (object === null || (typeof object !== "object" && typeof object !== "function")) {
@@ -166,6 +190,7 @@ var StringMap = (function() {
         }
         return this;
     };
+
     stringmap.prototype.merge = function(other) {
         var keys = other.keys();
         for (var i = 0; i < keys.length; i++) {
@@ -174,6 +199,7 @@ var StringMap = (function() {
         }
         return this;
     };
+
     stringmap.prototype.map = function(fn) {
         var keys = this.keys();
         for (var i = 0; i < keys.length; i++) {
@@ -182,6 +208,7 @@ var StringMap = (function() {
         }
         return keys;
     };
+
     stringmap.prototype.forEach = function(fn) {
         var keys = this.keys();
         for (var i = 0; i < keys.length; i++) {
@@ -189,10 +216,12 @@ var StringMap = (function() {
             fn(this.get(key), key);
         }
     };
+
     stringmap.prototype.clone = function() {
         var other = stringmap();
         return other.merge(this);
     };
+
     stringmap.prototype.toString = function() {
         var self = this;
         return "{" + this.keys().map(function(key) {
