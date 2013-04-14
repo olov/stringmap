@@ -100,9 +100,7 @@ var StringMap = (function() {
     };
     stringmap.prototype.isEmpty = function() {
         for (var key in this.obj) {
-            if (this.obj[key]) {
-                return false;
-            }
+            return false;
         }
         return !("proto" in this.aux);
     };
