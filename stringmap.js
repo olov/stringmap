@@ -64,7 +64,7 @@ var StringMap = (function() {
             return new stringmap(optional_object);
         }
         this.obj = create();
-        this.hasProto = undefined; // undefined (no __proto__ key) or true (has __proto__ key), never false
+        this.hasProto = false; // false (no __proto__ key) or true (has __proto__ key)
         this.proto = undefined; // value for __proto__ key when hasProto is true, undefined otherwise
 
         if (optional_object) {
@@ -90,7 +90,7 @@ var StringMap = (function() {
             throw new Error("StringMap expected string key");
         }
         return (key === "__proto__" ?
-            this.hasProto && this.proto :
+            this.proto :
             (hasOwnProperty.call(this.obj, key) ? this.obj[key] : undefined));
     };
 
@@ -112,7 +112,8 @@ var StringMap = (function() {
         }
         var didExist = this.has(key);
         if (key === "__proto__") {
-            this.hasProto = this.proto = undefined;
+            this.hasProto = false;
+            this.proto = undefined;
         } else {
             delete this.obj[key];
         }
