@@ -2,114 +2,196 @@
 // MIT licensed, see LICENSE file
 // Copyright (c) 2013 Olov Lassus <olov.lassus@gmail.com>
 
-// A stringmap that handles problematic keys just fine
-// For now "__proto__" is the only key that is handled specially
-// Other problematic keys, if available in a JS VM near you (let me know),
-//   can easily be moved to the aux object
 var StringMap = (function() {
     "use strict";
 
+    // to save us a few characters
+    var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+    var create = (function() {
+        function hasOwnEnumerableProps(obj) {
+            for (var prop in obj) {
+                if (hasOwnProperty.call(obj, prop)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        // FF <= 3.6:
+        // o = {}; o.hasOwnProperty("__proto__" or "__count__" or "__parent__") => true
+        // o = {"__proto__": null}; Object.prototype.hasOwnProperty.call(o, "__proto__" or "__count__" or "__parent__") => false
+        function hasOwnPollutedProps(obj) {
+            return hasOwnProperty.call(obj, "__count__") || hasOwnProperty.call(obj, "__parent__");
+        }
+
+        var useObjectCreate = false;
+        if (typeof Object.create === "function") {
+            if (!hasOwnEnumerableProps(Object.create(null))) {
+                useObjectCreate = true;
+            }
+        }
+        if (useObjectCreate === false) {
+            if (hasOwnEnumerableProps({})) {
+                throw new Error("StringMap environment error 0, please file a bug at https://github.com/olov/stringmap/issues");
+            }
+        }
+        // no throw yet means we can create objects without own enumerable props (safe-guard against VMs and shims)
+
+        var o = (useObjectCreate ? Object.create(null) : {});
+        var useProtoClear = false;
+        if (hasOwnPollutedProps(o)) {
+            o.__proto__ = null;
+            if (hasOwnEnumerableProps(o) || hasOwnPollutedProps(o)) {
+                throw new Error("StringMap environment error 1, please file a bug at https://github.com/olov/stringmap/issues");
+            }
+            useProtoClear = true;
+        }
+        // no throw yet means we can create objects without own polluted props (safe-guard against VMs and shims)
+
+        return function() {
+            var o = (useObjectCreate ? Object.create(null) : {});
+            if (useProtoClear) {
+                o.__proto__ = null;
+            }
+            return o;
+        };
+    })();
+
+    // stringmap ctor
     function stringmap(optional_object) {
+        // use with or without new
         if (!(this instanceof stringmap)) {
             return new stringmap(optional_object);
         }
-        this.obj = Object.create(null);
-        this.aux = Object.create(null);
+        this.obj = create();
+        this.hasProto = undefined; // undefined (no __proto__ key) or true (has __proto__ key), never false
+        this.proto = undefined; // value for __proto__ key when hasProto is true, undefined otherwise
+
         if (optional_object) {
             this.setMany(optional_object);
         }
     }
-    stringmap.prototype.get = function(key) {
-        return (key === "__proto__" ? this.aux.proto : this.obj[key]);
-    };
+
+    // primitive methods that deals with data representation
     stringmap.prototype.has = function(key) {
-        return (key === "__proto__" ? "proto" in this.aux : key in this.obj);
+        return (key === "__proto__" ?
+            this.hasProto :
+            hasOwnProperty.call(this.obj, key));
+    };
+    stringmap.prototype.get = function(key) {
+        return (key === "__proto__" ?
+            this.hasProto && this.proto :
+            (hasOwnProperty.call(this.obj, key) ? this.obj[key] : undefined));
     };
     stringmap.prototype.set = function(key, value) {
         if (key === "__proto__") {
-            this.aux.proto = value;
+            this.hasProto = true;
+            this.proto = value;
         } else {
             this.obj[key] = value;
         }
     };
-    stringmap.prototype.setMany = function(object) {
-        if (object === null || (typeof object !== "object" && typeof object !== "function")) {
-            throw new Error("StringMap expected Object");
-        }
-        var keys = Object.keys(object);
-        for (var idx = 0; idx < keys.length; idx++) {
-            var key = keys[idx];
-            this.set(key, object[key]);
-        }
-        return this;
-    };
-    stringmap.prototype.merge = function(map) {
-        var keys = map.keys();
-        for (var idx = 0; idx < keys.length; idx++) {
-            var key = keys[idx];
-            this.set(key, map.get(key));
-        }
-        return this;
-    };
     stringmap.prototype['delete'] = function(key) {
-        var existed = this.has(key);
+        var didExist = this.has(key);
         if (key === "__proto__") {
-            delete this.aux.proto;
+            this.hasProto = this.proto = undefined;
         } else {
             delete this.obj[key];
         }
-        return existed;
+        return didExist;
+    };
+    stringmap.prototype.isEmpty = function() {
+        for (var key in this.obj) {
+            if (hasOwnProperty.call(this.obj, key)) {
+                return false;
+            }
+        }
+        return !this.hasProto;
+    };
+    stringmap.prototype.size = function() {
+        var len = 0;
+        for (var key in this.obj) {
+            if (hasOwnProperty.call(this.obj, key)) {
+                ++len;
+            }
+        }
+        return (this.hasProto ? len + 1 : len);
     };
     stringmap.prototype.keys = function() {
-        var keys = Object.keys(this.obj);
-        if (this.aux.proto) {
+        var keys = [];
+        for (var key in this.obj) {
+            if (hasOwnProperty.call(this.obj, key)) {
+                keys.push(key);
+            }
+        }
+        if (this.hasProto) {
             keys.push("__proto__");
         }
         return keys;
     };
     stringmap.prototype.values = function() {
-        var arr = this.keys();
-        for (var idx = 0; idx < arr.length; idx++) {
-            arr[idx] = this.get(arr[idx]);
+        var values = [];
+        for (var key in this.obj) {
+            if (hasOwnProperty.call(this.obj, key)) {
+                values.push(this.obj[key]);
+            }
         }
-        return arr;
+        if (this.hasProto) {
+            values.push(this.proto);
+        }
+        return values;
     };
     stringmap.prototype.items = function() {
-        var arr = this.keys();
-        for (var idx = 0; idx < arr.length; idx++) {
-            arr[idx] = [arr[idx], this.get(arr[idx])];
+        var items = [];
+        for (var key in this.obj) {
+            if (hasOwnProperty.call(this.obj, key)) {
+                items.push([key, this.obj[key]]);
+            }
         }
-        return arr;
+        if (this.hasProto) {
+            items.push(["__proto__", this.proto]);
+        }
+        return items;
+    };
+
+    // methods that rely on the above primitives
+    stringmap.prototype.setMany = function(object) {
+        if (object === null || (typeof object !== "object" && typeof object !== "function")) {
+            throw new Error("StringMap expected Object");
+        }
+        for (var key in object) {
+            if (hasOwnProperty.call(object, key)) {
+                this.set(key, object[key]);
+            }
+        }
+        return this;
+    };
+    stringmap.prototype.merge = function(other) {
+        var keys = other.keys();
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            this.set(key, other.get(key));
+        }
+        return this;
     };
     stringmap.prototype.map = function(fn) {
-        var arr = this.keys();
-        for (var idx = 0; idx < arr.length; idx++) {
-            arr[idx] = fn(this.get(arr[idx]), arr[idx]);
+        var keys = this.keys();
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            keys[i] = fn(this.get(key), key); // re-use keys array for results
         }
-        return arr;
+        return keys;
     };
     stringmap.prototype.forEach = function(fn) {
-        var arr = this.keys();
-        for (var idx = 0; idx < arr.length; idx++) {
-            fn(this.get(arr[idx]), arr[idx]);
+        var keys = this.keys();
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            fn(this.get(key), key);
         }
     };
     stringmap.prototype.clone = function() {
         var other = stringmap();
         return other.merge(this);
-    };
-    stringmap.prototype.isEmpty = function() {
-        for (var key in this.obj) {
-            return false;
-        }
-        return !("proto" in this.aux);
-    };
-    stringmap.prototype.size = function() {
-        var len = 0;
-        for (var key in this.obj) {
-            ++len;
-        }
-        return ("proto" in this.aux ? len + 1 : len);
     };
     stringmap.prototype.toString = function() {
         var self = this;

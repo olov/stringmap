@@ -59,7 +59,7 @@ var StringMap = require("stringmap");
 ```
 
 ### Browser
-Clone the repo, include it in a script tag. You may want an ES5 polyfill.
+Clone the repo and include it in a script tag
 
     git clone https://github.com/olov/stringmap.git
 
