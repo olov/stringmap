@@ -9,7 +9,7 @@ Works in node and browsers.
 Available in `examples.js`
 
 ```javascript
-var StringMap = require("./stringmap");
+var StringMap = require("stringmap");
 
 var sm1 = new StringMap();
 sm1.set("greeting", "yoyoma");

@@ -70,7 +70,7 @@ var StringMap = (function() {
         if (optional_object) {
             this.setMany(optional_object);
         }
-    }
+    };
 
     // primitive methods that deals with data representation
     stringmap.prototype.has = function(key) {
@@ -228,7 +228,8 @@ var StringMap = (function() {
         return "{" + this.keys().map(function(key) {
             return JSON.stringify(key) + ":" + JSON.stringify(self.get(key));
         }).join(",") + "}";
-    }
+    };
+
     return stringmap;
 })();
 
