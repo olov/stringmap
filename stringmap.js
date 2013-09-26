@@ -106,7 +106,7 @@ var StringMap = (function() {
         }
     };
 
-    stringmap.prototype['delete'] = function(key) {
+    stringmap.prototype.remove = function(key) {
         if (typeof key !== "string") {
             throw new Error("StringMap expected string key");
         }
@@ -119,6 +119,12 @@ var StringMap = (function() {
         }
         return didExist;
     };
+
+    // alias remove to delete but beware:
+    // sm.delete("key"); // OK in ES5 and later
+    // sm['delete']("key"); // OK in all ES versions
+    // sm.remove("key"); // OK in all ES versions
+    stringmap.prototype['delete'] = stringmap.prototype.remove;
 
     stringmap.prototype.isEmpty = function() {
         for (var key in this.obj) {

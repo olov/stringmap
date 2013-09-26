@@ -6,7 +6,7 @@ sm1.set("check", true);
 sm1.set("__proto__", -1);
 console.log(sm1.has("greeting")); // true
 console.log(sm1.get("__proto__")); // -1
-sm1.delete("greeting");
+sm1.remove("greeting");
 console.log(sm1.keys()); // [ 'check', '__proto__' ]
 console.log(sm1.values()); // [ true, -1 ]
 console.log(sm1.items()); // [ [ 'check', true ], [ '__proto__', -1 ] ]

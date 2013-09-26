@@ -3,6 +3,12 @@ A fast and robust stringmap implementation that can hold any string keys,
 including `__proto__`, with minimal overhead compared to a plain object.
 Works in node and browsers.
 
+The API is created to be as close to the ES6 Map API as possible. Prefer
+`sm.remove("key")` for deleting a key. ES6 Map uses `map.delete("key")`
+instead and for that reason `sm['delete']("key")` is available as a
+stringmap alias as well. Never do `sm.delete("key")` unless you're
+certain to be in the land of ES5 or later.
+
 
 
 ## Examples
@@ -17,7 +23,7 @@ sm1.set("check", true);
 sm1.set("__proto__", -1);
 console.log(sm1.has("greeting")); // true
 console.log(sm1.get("__proto__")); // -1
-sm1.delete("greeting");
+sm1.remove("greeting");
 console.log(sm1.keys()); // [ 'check', '__proto__' ]
 console.log(sm1.values()); // [ true, -1 ]
 console.log(sm1.items()); // [ [ 'check', true ], [ '__proto__', -1 ] ]
